@@ -97,7 +97,7 @@ class VY_OSINT_Framework(ctk.CTk):
             self.log(f"\n[+] İSTİHBARAT RAPORU TAMAMLANDI.")
 
         except socket.gaierror:
-            self.log(f"\n[❌] HATA: '{target}' adresi çözümlenemedi. Geçerli bir domain veya IP olduğundan emin olun.")
+            self.log(f"\n[❌] HATA: '{target}' adresi çözümlenemedi. Geçerli bir domain veya IP olduğundan emin olun!")
         except Exception as e:
             self.log(f"\n[❌] KRİTİK HATA: Beklenmeyen bir istisna oluştu: {str(e)}")
         finally:
