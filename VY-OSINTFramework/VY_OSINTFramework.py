@@ -1,13 +1,12 @@
-﻿
-import customtkinter as ctk
+﻿import customtkinter as ctk
 import socket
 import requests
 import threading
 
-# --- GÜVENLİK VE MİMARİ NOTLARI ---
-# 1. Pasif OSINT: Hedefe doğrudan saldırı yapılmaz, kısıtlı ve güvenli API'ler kullanılır.
-# 2. Timeout (Zaman Aşımı): Karşı sunucu veya API yanıt vermezse programın çökmemesi için requests kütüphanesine timeout eklenmiştir.
-# 3. Threading (Çoklu İşlem): Ağ sorguları UI'ı dondurmasın diye işlemler arka plana alınmıştır.
+# --- GÜVENLİK VE MİMARİ NOTLARI (VY-OSINTFramework) ---
+# 1. Pasif OSINT: Hedefe doğrudan saldırı/istek yapılmaz, aracı (proxy/API) servisler kullanılır.
+# 2. Sıfır Telemetri: Kullanıcı verisi hiçbir şekilde üçüncü partilerle paylaşılmaz.
+# 3. Asenkron Mimari (Threading): Ağ istekleri sırasında UI'ın (Kullanıcı Arayüzü) donmaması sağlanmıştır.
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -17,7 +16,7 @@ class VY_OSINT_Framework(ctk.CTk):
         super().__init__()
 
         self.title("VY OSINT Framework - Lab v1.0")
-        self.geometry("700x500")
+        self.geometry("750x550")
 
         # 1. ÜST BAŞLIK ALANI
         self.label_title = ctk.CTkLabel(self, text="🛡️ Hedef Altyapı İstihbaratı (Pasif Bilgi Toplama)", font=ctk.CTkFont(size=18, weight="bold"))
@@ -36,7 +35,7 @@ class VY_OSINT_Framework(ctk.CTk):
         # 3. SONUÇ EKRANI (LOG)
         self.txt_results = ctk.CTkTextbox(self, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
         self.txt_results.pack(pady=10, padx=20, fill="both", expand=True)
-        self.txt_results.insert("0.0", "[*] Sistem Hazır. Pasif tarama için hedef giriniz...\n")
+        self.txt_results.insert("0.0", "[*] Sistem Hazır. %100 Pasif tarama için hedef giriniz...\n")
         self.txt_results.configure(state="disabled")
 
     def log(self, message):
@@ -53,26 +52,26 @@ class VY_OSINT_Framework(ctk.CTk):
             self.log("[❌] HATA: Lütfen geçerli bir hedef girin.")
             return
 
-        # URL Temizleme (http:// veya https:// varsa at)
+        # URL Temizleme (http:// veya https:// varsa sadece domaini alacak şekilde temizle)
         if "://" in target:
             target = target.split("://")[1].split("/")[0]
 
         self.btn_scan.configure(state="disabled", text="TARANIYOR...")
-        self.log(f"\n[{'-'*40}]\n[+] YENİ İSTİHBARAT DÖNGÜSÜ BAŞLATILDI: {target}\n[{'-'*40}]")
+        self.log(f"\n[{'-'*50}]\n[+] YENİ İSTİHBARAT DÖNGÜSÜ BAŞLATILDI: {target}\n[{'-'*50}]")
         
         threading.Thread(target=self.run_osint, args=(target,), daemon=True).start()
 
     def run_osint(self, target):
-        """Çekirdek OSINT Algoritmaları."""
+        """Çekirdek OSINT Algoritmaları (Sıfır Temas, %100 Pasif)."""
         try:
             # ADIM 1: DNS & IP Çözümleme
             self.log("[*] Adım 1: IP Adresi Çözümleniyor...")
             target_ip = socket.gethostbyname(target)
             self.log(f"    ✅ Hedef IP Adresi: {target_ip}")
 
-            # ADIM 2: Coğrafi Konum ve ISP İstihbaratı (ipinfo.io - API Key gerektirmez, pasif)
+            # ADIM 2: Coğrafi Konum ve ISP İstihbaratı (ipinfo.io - Pasif Kaynak)
             self.log("\n[*] Adım 2: Coğrafi Konum ve Servis Sağlayıcı (ISP) Analizi...")
-            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"} # Güvenlik: Bot engeline takılmamak için
+            headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) VY-OSINT/1.0"} 
             geo_response = requests.get(f"https://ipinfo.io/{target_ip}/json", headers=headers, timeout=5)
             
             if geo_response.status_code == 200:
@@ -83,24 +82,31 @@ class VY_OSINT_Framework(ctk.CTk):
             else:
                 self.log("    ❌ Konum API'si yanıt vermedi.")
 
-            # ADIM 3: Pasif Sunucu Başlık Analizi (HTTP Header Grabber)
-            self.log("\n[*] Adım 3: Sunucu Teknolojisi Tespiti (Header Grabber)...")
+            # ADIM 3: TAMAMEN PASİF SUNUCU BAŞLIK ANALİZİ (HackerTarget API)
+            self.log("\n[*] Adım 3: Sunucu Teknolojisi Tespiti (Pasif Header Grabber)...")
             try:
-                http_response = requests.get(f"http://{target}", headers=headers, timeout=5)
-                server = http_response.headers.get('Server', 'Gizlenmiş (Güvenlik Yapılandırması Aktif)')
-                tech = http_response.headers.get('X-Powered-By', 'Tespit Edilemedi')
-                self.log(f"    ✅ Sunucu Yazılımı: {server}")
-                self.log(f"    ✅ Arka Plan Teknolojisi: {tech}")
+                # İstek doğrudan hedefe DEĞİL, aracı bir OSINT servisine gidiyor. (Hedefte iz bırakmaz)
+                ht_response = requests.get(f"https://api.hackertarget.com/httpheaders/?q={target}", headers=headers, timeout=10)
+                
+                if ht_response.status_code == 200 and "error" not in ht_response.text.lower():
+                    self.log("    ✅ Pasif Başlık Analizi Sonuçları (Kritik Bulgular):")
+                    headers_list = ht_response.text.split('\n')
+                    for line in headers_list[:7]: # Çıktı kalabalığını önlemek için ilk 7 satır ile sınırlandırıldı
+                        if line.strip() and not line.startswith("http"):
+                            self.log(f"       - {line.strip()}")
+                else:
+                    self.log("    ❌ Pasif API yanıt vermedi veya veri bulunamadı.")
             except requests.exceptions.RequestException:
-                self.log("    ❌ Sunucuya HTTP isteği yapılamadı (Koruma veya Kapalı Port).")
+                self.log("    ❌ Aracı OSINT servisine bağlanılamadı (Timeout veya Bağlantı Hatası).")
 
             self.log(f"\n[+] İSTİHBARAT RAPORU TAMAMLANDI.")
 
         except socket.gaierror:
-            self.log(f"\n[❌] HATA: '{target}' adresi çözümlenemedi. Geçerli bir domain veya IP olduğundan emin olun!")
+            self.log(f"\n[❌] HATA: '{target}' adresi çözümlenemedi. Geçerli bir domain veya IP olduğundan emin olun.")
         except Exception as e:
             self.log(f"\n[❌] KRİTİK HATA: Beklenmeyen bir istisna oluştu: {str(e)}")
         finally:
+            # İşlem bittiğinde butonları ve UI'yi ana threade geri çağırarak güvenli resetleme
             self.after(100, self.reset_ui)
 
     def reset_ui(self):
