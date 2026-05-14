@@ -16,7 +16,7 @@ class VY_OSINT_Framework(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("VY OSINT Framework - Lab v1.1")
+        self.title("VY OSINT Framework - Lab v1.2")
         self.geometry("850x600")
 
         # --- SEKME (TAB) MİMARİSİ ---
@@ -121,7 +121,7 @@ class VY_OSINT_Framework(ctk.CTk):
 
         self.txt_results_t2 = ctk.CTkTextbox(self.tab_2, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
         self.txt_results_t2.pack(pady=10, padx=10, fill="both", expand=True)
-        self.log_t2("[*] Ayak İzi Modülü Hazır. Platformlar üzerinden pasif tarama yapılacaktır...")
+        self.log_t2("[*] Ayak İzi Modülü Hazır. Genişletilmiş platformlar üzerinden pasif tarama yapılacaktır...")
 
     def log_t2(self, message):
         self.txt_results_t2.configure(state="normal")
@@ -135,7 +135,6 @@ class VY_OSINT_Framework(ctk.CTk):
             self.log_t2("[❌] HATA: Lütfen bir kullanıcı adı girin.")
             return
 
-        # Boşluklu isim girilmesini engelle
         if " " in username:
             self.log_t2("[❌] HATA: Kullanıcı adları boşluk içeremez.")
             return
@@ -146,33 +145,47 @@ class VY_OSINT_Framework(ctk.CTk):
 
     def run_username_enumeration(self, username):
         """Kullanıcı adını popüler platformlarda arar."""
-        # Stabil platformlar (Sahte pozitif vermeyen, güvenli hedefler)
+        # Stabil platformlar (Genişletilmiş Kapsam)
         platforms = {
+            "YouTube": f"https://www.youtube.com/@{username}",
+            "Twitch": f"https://www.twitch.tv/{username}",
+            "Pinterest": f"https://tr.pinterest.com/{username}/",
+            "Spotify": f"https://open.spotify.com/user/{username}",
+            "Medium": f"https://medium.com/@{username}",
+            "Telegram": f"https://t.me/{username}",
             "GitHub": f"https://github.com/{username}",
             "Reddit": f"https://www.reddit.com/user/{username}",
             "Vimeo": f"https://vimeo.com/{username}",
             "SoundCloud": f"https://soundcloud.com/{username}",
-            "Wattpad": f"https://www.wattpad.com/user/{username}",
-            "Patreon": f"https://www.patreon.com/{username}"
         }
 
-        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"}
+        # Daha inandırıcı bir User-Agent maskesi
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5"
+        }
+        
         found_count = 0
 
         for site, url in platforms.items():
             self.log_t2(f"[*] {site} platformu kontrol ediliyor...")
             try:
-                # WAF ve Rate-Limit'e takılmamak için araya milisaniyelik gecikme koyuyoruz
-                time.sleep(0.5) 
-                response = requests.get(url, headers=headers, timeout=5)
+                time.sleep(0.7) # WAF'ı tetiklememek için gecikme
+                response = requests.get(url, headers=headers, timeout=8, allow_redirects=False)
                 
                 if response.status_code == 200:
-                    self.log_t2(f"    ✅ BULUNDU: {url}")
-                    found_count += 1
+                    if "Not Found" not in response.text and "sayfa bulunamadı" not in response.text.lower():
+                        self.log_t2(f"    ✅ BULUNDU: {url}")
+                        found_count += 1
+                elif response.status_code in [301, 302]:
+                    if site == "Telegram":
+                        self.log_t2(f"    ✅ BULUNDU: {url}")
+                        found_count += 1
                 elif response.status_code == 404:
-                    pass # Kullanıcı bu sitede yok, ekrana yazdırıp kalabalık yapmıyoruz
+                    pass
                 else:
-                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site})")
+                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site}) - Muhtemel Bot Koruması")
             except requests.exceptions.RequestException:
                 self.log_t2(f"    ❌ Bağlantı hatası ({site})")
 
