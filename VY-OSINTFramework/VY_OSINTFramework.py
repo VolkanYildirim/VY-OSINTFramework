@@ -144,8 +144,7 @@ class VY_OSINT_Framework(ctk.CTk):
         threading.Thread(target=self.run_username_enumeration, args=(username,), daemon=True).start()
 
     def run_username_enumeration(self, username):
-        """Kullanıcı adını popüler platformlarda arar."""
-        # Stabil platformlar (Genişletilmiş Kapsam)
+        """Kullanıcı adını popüler platformlarda arar (Sahte Pozitif Korumalı)."""
         platforms = {
             "YouTube": f"https://www.youtube.com/@{username}",
             "Twitch": f"https://www.twitch.tv/{username}",
@@ -159,10 +158,20 @@ class VY_OSINT_Framework(ctk.CTk):
             "SoundCloud": f"https://soundcloud.com/{username}",
         }
 
-        # Daha inandırıcı bir User-Agent maskesi
+        # --- SAHTE POZİTİF (FALSE-POSITIVE) KALKANI ---
+        # Platformların 200 OK döndürüp aslında "kullanıcı yok" dediği anahtar kelimeler
+        error_flags = {
+            "Twitch": ["content is unavailable", "core-error-message"],
+            "Pinterest": ["Not Found", "bulunamadı", "hata"],
+            "YouTube": ["Not Found", "404", "bulunamadı"],
+            "Spotify": ["not found", "bulunamadı"],
+            "Medium": ["Out of nothing, something", "404"],
+            "SoundCloud": ["we can't find that user", "404"],
+            "Vimeo": ["404"]
+        }
+
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5"
         }
         
@@ -171,13 +180,26 @@ class VY_OSINT_Framework(ctk.CTk):
         for site, url in platforms.items():
             self.log_t2(f"[*] {site} platformu kontrol ediliyor...")
             try:
-                time.sleep(0.7) # WAF'ı tetiklememek için gecikme
+                time.sleep(0.7) 
                 response = requests.get(url, headers=headers, timeout=8, allow_redirects=False)
                 
                 if response.status_code == 200:
-                    if "Not Found" not in response.text and "sayfa bulunamadı" not in response.text.lower():
+                    html_content = response.text.lower()
+                    is_false_positive = False
+                    
+                    # Eğer platformun bilinen bir hata imzası varsa, HTML içinde onu ara
+                    if site in error_flags:
+                        for flag in error_flags[site]:
+                            if flag.lower() in html_content:
+                                is_false_positive = True
+                                break # Hata imzası bulundu, aramayı kes
+                    
+                    if not is_false_positive:
                         self.log_t2(f"    ✅ BULUNDU: {url}")
                         found_count += 1
+                    else:
+                         pass # Soft 404 yakalandı, ekrana yazdırma
+                         
                 elif response.status_code in [301, 302]:
                     if site == "Telegram":
                         self.log_t2(f"    ✅ BULUNDU: {url}")
@@ -185,7 +207,7 @@ class VY_OSINT_Framework(ctk.CTk):
                 elif response.status_code == 404:
                     pass
                 else:
-                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site}) - Muhtemel Bot Koruması")
+                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site}) - WAF Koruması")
             except requests.exceptions.RequestException:
                 self.log_t2(f"    ❌ Bağlantı hatası ({site})")
 
