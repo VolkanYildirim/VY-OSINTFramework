@@ -144,30 +144,16 @@ class VY_OSINT_Framework(ctk.CTk):
         threading.Thread(target=self.run_username_enumeration, args=(username,), daemon=True).start()
 
     def run_username_enumeration(self, username):
-        """Kullanıcı adını popüler platformlarda arar (Sahte Pozitif Korumalı)."""
+        """Kullanıcı adını popüler platformlarda arar (Sahte Pozitif Riski Sıfırlanmış Liste)."""
+        # Sadece kullanıcı yoksa 404 döndüren, SPA engeli olmayan "Stabil" platformlar
         platforms = {
-            "YouTube": f"https://www.youtube.com/@{username}",
-            "Twitch": f"https://www.twitch.tv/{username}",
-            "Pinterest": f"https://tr.pinterest.com/{username}/",
-            "Spotify": f"https://open.spotify.com/user/{username}",
-            "Medium": f"https://medium.com/@{username}",
-            "Telegram": f"https://t.me/{username}",
             "GitHub": f"https://github.com/{username}",
             "Reddit": f"https://www.reddit.com/user/{username}",
-            "Vimeo": f"https://vimeo.com/{username}",
-            "SoundCloud": f"https://soundcloud.com/{username}",
-        }
-
-        # --- SAHTE POZİTİF (FALSE-POSITIVE) KALKANI ---
-        # Platformların 200 OK döndürüp aslında "kullanıcı yok" dediği anahtar kelimeler
-        error_flags = {
-            "Twitch": ["content is unavailable", "core-error-message"],
-            "Pinterest": ["Not Found", "bulunamadı", "hata"],
-            "YouTube": ["Not Found", "404", "bulunamadı"],
-            "Spotify": ["not found", "bulunamadı"],
-            "Medium": ["Out of nothing, something", "404"],
-            "SoundCloud": ["we can't find that user", "404"],
-            "Vimeo": ["404"]
+            "Patreon": f"https://www.patreon.com/{username}",
+            "Telegram": f"https://t.me/{username}",
+            "HackTheBox": f"https://app.hackthebox.com/users/{username}", # Sektörel hedef
+            "Linktree": f"https://linktr.ee/{username}",
+            "Blogger": f"https://{username}.blogspot.com/"
         }
 
         headers = {
@@ -181,37 +167,21 @@ class VY_OSINT_Framework(ctk.CTk):
             self.log_t2(f"[*] {site} platformu kontrol ediliyor...")
             try:
                 time.sleep(0.7) 
-                response = requests.get(url, headers=headers, timeout=8, allow_redirects=False)
+                # Blogger alt alan adı kontrolü (blogspot.com) için yönlendirmelere izin veriyoruz
+                response = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
                 
+                # Bu siteler hesap yoksa KESİNLİKLE 404 veya 403 döndürür, 200 döndürüyorsa hesap vardır.
                 if response.status_code == 200:
-                    html_content = response.text.lower()
-                    is_false_positive = False
-                    
-                    # Eğer platformun bilinen bir hata imzası varsa, HTML içinde onu ara
-                    if site in error_flags:
-                        for flag in error_flags[site]:
-                            if flag.lower() in html_content:
-                                is_false_positive = True
-                                break # Hata imzası bulundu, aramayı kes
-                    
-                    if not is_false_positive:
-                        self.log_t2(f"    ✅ BULUNDU: {url}")
-                        found_count += 1
-                    else:
-                         pass # Soft 404 yakalandı, ekrana yazdırma
-                         
-                elif response.status_code in [301, 302]:
-                    if site == "Telegram":
-                        self.log_t2(f"    ✅ BULUNDU: {url}")
-                        found_count += 1
+                    self.log_t2(f"    ✅ BULUNDU: {url}")
+                    found_count += 1
                 elif response.status_code == 404:
-                    pass
+                    pass # Kullanıcı yok, sessizce geç
                 else:
-                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site}) - WAF Koruması")
+                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site}) - İnceleme Gerekli")
             except requests.exceptions.RequestException:
                 self.log_t2(f"    ❌ Bağlantı hatası ({site})")
 
-        self.log_t2(f"\n[+] TARAMA BİTTİ. Toplam {found_count}/{len(platforms)} platformda eşleşme bulundu.")
+        self.log_t2(f"\n[+] TARAMA BİTTİ. Toplam {found_count}/{len(platforms)} platformda kesin eşleşme bulundu.")
         self.after(100, lambda: self.btn_scan_t2.configure(state="normal", text="KULLANICIYI ARA"))
 
     # ==========================================
