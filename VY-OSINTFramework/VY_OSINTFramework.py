@@ -144,21 +144,50 @@ class VY_OSINT_Framework(ctk.CTk):
         threading.Thread(target=self.run_username_enumeration, args=(username,), daemon=True).start()
 
     def run_username_enumeration(self, username):
-        """Kullanıcı adını popüler platformlarda arar (Sahte Pozitif Riski Sıfırlanmış Liste)."""
-        # Sadece kullanıcı yoksa 404 döndüren, SPA engeli olmayan "Stabil" platformlar
+        """Kullanıcı adını genişletilmiş ve kesin sonuç veren platformlarda arar."""
+        
+        # --- KESİN SONUÇ VEREN (HTTP 404 DÖNDÜREN) ALTIN HEDEFLER LİSTESİ ---
         platforms = {
+            # 1. Yazılım & Teknoloji İstihbaratı
             "GitHub": f"https://github.com/{username}",
+            "GitLab": f"https://gitlab.com/{username}",
+            "BitBucket": f"https://bitbucket.org/{username}/",
+            "Pastebin": f"https://pastebin.com/u/{username}",
+            "Dev.to": f"https://dev.to/{username}",
+            
+            # 2. Siber Güvenlik & Kriptografi
+            "HackTheBox": f"https://app.hackthebox.com/users/{username}",
+            "TryHackMe": f"https://tryhackme.com/p/{username}",
+            "Keybase": f"https://keybase.io/{username}", # Kritik OSINT hedefidir
+            
+            # 3. Sosyal Ağlar & Topluluk
             "Reddit": f"https://www.reddit.com/user/{username}",
-            "Patreon": f"https://www.patreon.com/{username}",
             "Telegram": f"https://t.me/{username}",
-            "HackTheBox": f"https://app.hackthebox.com/users/{username}", # Sektörel hedef
+            "Flickr": f"https://www.flickr.com/people/{username}/",
+            "Behance": f"https://www.behance.net/{username}",
+            "Chess.com": f"https://www.chess.com/member/{username}",
+            
+            # 4. İçerik Üreticileri & Finansal Ayak İzi
+            "Patreon": f"https://www.patreon.com/{username}",
+            "BuyMeACoffee": f"https://www.buymeacoffee.com/{username}",
+            "Gravatar": f"https://en.gravatar.com/{username}",
+            
+            # 5. Biyografi & Link Ağaçları
             "Linktree": f"https://linktr.ee/{username}",
-            "Blogger": f"https://{username}.blogspot.com/"
+            "AllMyLinks": f"https://allmylinks.com/{username}",
+            "About.me": f"https://about.me/{username}",
+            
+            # 6. Blog & Makale (Alt alan adı tabanlı)
+            "Blogger": f"https://{username}.blogspot.com/",
+            "LiveJournal": f"https://{username}.livejournal.com/",
+            "HubPages": f"https://hubpages.com/@{username}"
         }
 
+        # Anti-Bot Kalkanı: Modern bir tarayıcı taklidi
         headers = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept-Language": "en-US,en;q=0.5"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8"
         }
         
         found_count = 0
@@ -166,22 +195,30 @@ class VY_OSINT_Framework(ctk.CTk):
         for site, url in platforms.items():
             self.log_t2(f"[*] {site} platformu kontrol ediliyor...")
             try:
-                time.sleep(0.7) 
-                # Blogger alt alan adı kontrolü (blogspot.com) için yönlendirmelere izin veriyoruz
+                # WAF'ı yormamak ve IP ban yememek için stratejik gecikme
+                time.sleep(0.5) 
+                
+                # allow_redirects=True yaptık çünkü Blogger gibi siteler ülke uzantısına (.com.tr vb) yönlendirme yapabilir.
                 response = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
                 
-                # Bu siteler hesap yoksa KESİNLİKLE 404 veya 403 döndürür, 200 döndürüyorsa hesap vardır.
                 if response.status_code == 200:
                     self.log_t2(f"    ✅ BULUNDU: {url}")
                     found_count += 1
                 elif response.status_code == 404:
-                    pass # Kullanıcı yok, sessizce geç
+                    pass # Kullanıcı kesinlikle yok, ekranı kirletme
+                elif response.status_code == 403:
+                    self.log_t2(f"    ⚠️ Yanıt kodu: 403 Forbidden ({site}) - WAF engeli.")
                 else:
-                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site}) - İnceleme Gerekli")
+                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site})")
+                    
+            except requests.exceptions.ConnectionError:
+                # Özellikle blogspot veya livejournal'da subdomain yoksa DNS hatası (ConnectionError) döner.
+                # Bu da kullanıcının o platformda hesabı olmadığı anlamına gelir. O yüzden pass diyoruz.
+                pass 
             except requests.exceptions.RequestException:
-                self.log_t2(f"    ❌ Bağlantı hatası ({site})")
+                self.log_t2(f"    ❌ Zaman aşımı veya bağlantı hatası ({site})")
 
-        self.log_t2(f"\n[+] TARAMA BİTTİ. Toplam {found_count}/{len(platforms)} platformda kesin eşleşme bulundu.")
+        self.log_t2(f"\n[+] TARAMA BİTTİ. Toplam {found_count}/{len(platforms)} platformda dijital ayak izi tespit edildi.")
         self.after(100, lambda: self.btn_scan_t2.configure(state="normal", text="KULLANICIYI ARA"))
 
     # ==========================================
