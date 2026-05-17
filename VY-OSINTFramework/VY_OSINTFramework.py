@@ -148,42 +148,30 @@ class VY_OSINT_Framework(ctk.CTk):
         
         # --- KESİN SONUÇ VEREN (HTTP 404 DÖNDÜREN) ALTIN HEDEFLER LİSTESİ ---
         platforms = {
-            # 1. Yazılım & Teknoloji İstihbaratı
             "GitHub": f"https://github.com/{username}",
             "GitLab": f"https://gitlab.com/{username}",
             "BitBucket": f"https://bitbucket.org/{username}/",
             "Pastebin": f"https://pastebin.com/u/{username}",
             "Dev.to": f"https://dev.to/{username}",
-            
-            # 2. Siber Güvenlik & Kriptografi
             "HackTheBox": f"https://app.hackthebox.com/users/{username}",
             "TryHackMe": f"https://tryhackme.com/p/{username}",
-            "Keybase": f"https://keybase.io/{username}", # Kritik OSINT hedefidir
-            
-            # 3. Sosyal Ağlar & Topluluk
+            "Keybase": f"https://keybase.io/{username}",
             "Reddit": f"https://www.reddit.com/user/{username}",
             "Telegram": f"https://t.me/{username}",
             "Flickr": f"https://www.flickr.com/people/{username}/",
             "Behance": f"https://www.behance.net/{username}",
             "Chess.com": f"https://www.chess.com/member/{username}",
-            
-            # 4. İçerik Üreticileri & Finansal Ayak İzi
             "Patreon": f"https://www.patreon.com/{username}",
             "BuyMeACoffee": f"https://www.buymeacoffee.com/{username}",
             "Gravatar": f"https://en.gravatar.com/{username}",
-            
-            # 5. Biyografi & Link Ağaçları
             "Linktree": f"https://linktr.ee/{username}",
             "AllMyLinks": f"https://allmylinks.com/{username}",
             "About.me": f"https://about.me/{username}",
-            
-            # 6. Blog & Makale (Alt alan adı tabanlı)
             "Blogger": f"https://{username}.blogspot.com/",
             "LiveJournal": f"https://{username}.livejournal.com/",
             "HubPages": f"https://hubpages.com/@{username}"
         }
 
-        # Anti-Bot Kalkanı: Modern bir tarayıcı taklidi
         headers = {
             "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept-Language": "en-US,en;q=0.9",
@@ -195,28 +183,24 @@ class VY_OSINT_Framework(ctk.CTk):
         for site, url in platforms.items():
             self.log_t2(f"[*] {site} platformu kontrol ediliyor...")
             try:
-                # WAF'ı yormamak ve IP ban yememek için stratejik gecikme
                 time.sleep(0.5) 
-                
-                # allow_redirects=True yaptık çünkü Blogger gibi siteler ülke uzantısına (.com.tr vb) yönlendirme yapabilir.
                 response = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
                 
                 if response.status_code == 200:
                     self.log_t2(f"    ✅ BULUNDU: {url}")
                     found_count += 1
                 elif response.status_code == 404:
-                    pass # Kullanıcı kesinlikle yok, ekranı kirletme
+                    self.log_t2("    [-] Bulunamadı.") # Sessizce geçmek yerine artık logluyoruz
                 elif response.status_code == 403:
-                    self.log_t2(f"    ⚠️ Yanıt kodu: 403 Forbidden ({site}) - WAF engeli.")
+                    self.log_t2("    ⚠️ Yanıt kodu: 403 Forbidden - WAF engeli.")
                 else:
-                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code} ({site})")
+                    self.log_t2(f"    ⚠️ Yanıt kodu: {response.status_code}")
                     
             except requests.exceptions.ConnectionError:
-                # Özellikle blogspot veya livejournal'da subdomain yoksa DNS hatası (ConnectionError) döner.
-                # Bu da kullanıcının o platformda hesabı olmadığı anlamına gelir. O yüzden pass diyoruz.
-                pass 
+                # DNS çözümlenemediğinde (Örn: Blogger alt alan adı yoksa)
+                self.log_t2("    [-] Bulunamadı. (Alan adı kaydı yok)")
             except requests.exceptions.RequestException:
-                self.log_t2(f"    ❌ Zaman aşımı veya bağlantı hatası ({site})")
+                self.log_t2("    ❌ Zaman aşımı veya bağlantı hatası.")
 
         self.log_t2(f"\n[+] TARAMA BİTTİ. Toplam {found_count}/{len(platforms)} platformda dijital ayak izi tespit edildi.")
         self.after(100, lambda: self.btn_scan_t2.configure(state="normal", text="KULLANICIYI ARA"))
