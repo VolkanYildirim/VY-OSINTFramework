@@ -193,7 +193,7 @@ class VY_OSINT_Framework(ctk.CTk):
 
     def extract_image_exif(self, filepath):
         """Resimlerdeki gizli EXIF meta verilerini çıkartır."""
-        self.log_t3("[*] İşlem: Görüntü (Resim) Analizi Başladı...")
+        self.log_t3("[*] İşlem: Görüntü Analizi Başladı...")
         try:
             image = Image.open(filepath)
             exif_data = image._getexif()
