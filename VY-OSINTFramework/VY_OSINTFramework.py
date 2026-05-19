@@ -20,7 +20,7 @@ class VY_OSINT_Framework(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.title("VY OSINT Framework - Lab v1.3")
+        self.title("VY OSINT Framework (Pro Edition)")
         self.geometry("900x650")
 
         # --- SEKME (TAB) MİMARİSİ ---
