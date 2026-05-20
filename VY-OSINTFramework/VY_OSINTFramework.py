@@ -23,9 +23,19 @@ class VY_OSINT_Framework(ctk.CTk):
         self.title("VY OSINT Framework (Pro Edition)")
         self.geometry("900x650")
 
+        # --- ÜST BAR (HEADER) ---
+        self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.header_frame.pack(fill="x", padx=15, pady=(15, 0))
+
+        self.lbl_app_logo = ctk.CTkLabel(self.header_frame, text="🛡️ VY OSINT Framework", font=ctk.CTkFont(size=20, weight="bold"))
+        self.lbl_app_logo.pack(side="left")
+
+        self.btn_about = ctk.CTkButton(self.header_frame, text="Hakkında", width=90, height=30, font=ctk.CTkFont(weight="bold"), command=self.show_about)
+        self.btn_about.pack(side="right")
+
         # --- SEKME (TAB) MİMARİSİ ---
         self.tabview = ctk.CTkTabview(self)
-        self.tabview.pack(fill="both", expand=True, padx=15, pady=15)
+        self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 15))
 
         self.tab_1 = self.tabview.add("1. Altyapı OSINT")
         self.tab_2 = self.tabview.add("2. Ayak İzi Avcısı")
