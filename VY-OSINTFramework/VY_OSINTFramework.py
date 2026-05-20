@@ -41,13 +41,39 @@ class VY_OSINT_Framework(ctk.CTk):
         self.tab_2 = self.tabview.add("2. Ayak İzi Avcısı")
         self.tab_3 = self.tabview.add("3. Medya Analizi")
 
+
+
         self.setup_tab_1()
         self.setup_tab_2()
         self.setup_tab_3()
 
+
+
     # ==========================================
     # MODÜL 1: ALTYAPI İSTİHBARATI (DOMAIN/IP)
     # ==========================================
+    def show_about(self):
+        """Hakkında (About) penceresini açar ve felsefeyi gösterir."""
+        about_win = ctk.CTkToplevel(self)
+        about_win.title("Hakkında")
+        about_win.geometry("520x260")
+        about_win.resizable(False, False)
+        about_win.attributes("-topmost", True) # Pencerenin hep üstte kalmasını sağlar
+
+        lbl_title = ctk.CTkLabel(about_win, text="VY OSINT Framework", font=ctk.CTkFont(size=18, weight="bold"))
+        lbl_title.pack(pady=(25, 5))
+
+        lbl_version = ctk.CTkLabel(about_win, text="Version 1.0 (Pro Edition)", font=ctk.CTkFont(size=13), text_color="gray")
+        lbl_version.pack(pady=(0, 15))
+
+        desc = ("Bu yazılım; dijital mahremiyet (Privacy-First) ilkeleri gözetilerek,\n"
+                "tamamen açık kaynaklı altyapılar kullanılarak geliştirilmiştir.\n"
+                "Hiçbir kullanıcı verisi veya telemetri toplamaz ve dışarıya aktarmaz.")
+        lbl_desc = ctk.CTkLabel(about_win, text=desc, font=ctk.CTkFont(size=13))
+        lbl_desc.pack(pady=(0, 20))
+
+        lbl_dev = ctk.CTkLabel(about_win, text="🛡️ Developed by Volkan YILDIRIM - Proctives\nwww.volkanyildirim.com.tr", font=ctk.CTkFont(size=13, weight="bold"))
+        lbl_dev.pack(pady=(0, 10))
     def setup_tab_1(self):
         self.label_title_t1 = ctk.CTkLabel(self.tab_1, text="🛡️ Hedef Altyapı İstihbaratı", font=ctk.CTkFont(size=16, weight="bold"))
         self.label_title_t1.pack(pady=(10, 5))
