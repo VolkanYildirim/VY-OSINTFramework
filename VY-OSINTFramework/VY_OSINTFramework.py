@@ -30,8 +30,14 @@ class VY_OSINT_Framework(ctk.CTk):
         self.lbl_app_logo = ctk.CTkLabel(self.header_frame, text="🛡️ VY OSINT Framework", font=ctk.CTkFont(size=20, weight="bold"))
         self.lbl_app_logo.pack(side="left")
 
+        # Hakkında Butonu
         self.btn_about = ctk.CTkButton(self.header_frame, text="Hakkında", width=90, height=30, font=ctk.CTkFont(weight="bold"), command=self.show_about)
-        self.btn_about.pack(side="right")
+        self.btn_about.pack(side="right", padx=(10, 0)) # Araya 10px boşluk koyduk
+
+        # Tema Seçici Açılır Menü (Yeni Eklendi)
+        self.theme_menu = ctk.CTkOptionMenu(self.header_frame, values=["Karanlık", "Aydınlık"], command=self.change_theme, width=100, height=30)
+        self.theme_menu.pack(side="right")
+        self.theme_menu.set("Karanlık") # Varsayılan değer
 
         # --- SEKME (TAB) MİMARİSİ ---
         self.tabview = ctk.CTkTabview(self)
@@ -53,6 +59,7 @@ class VY_OSINT_Framework(ctk.CTk):
     # MODÜL 1: ALTYAPI İSTİHBARATI (DOMAIN/IP)
     # ==========================================
     def show_about(self):
+
         """Hakkında (About) penceresini açar ve felsefeyi gösterir."""
         about_win = ctk.CTkToplevel(self)
         about_win.title("Hakkında")
@@ -74,6 +81,14 @@ class VY_OSINT_Framework(ctk.CTk):
 
         lbl_dev = ctk.CTkLabel(about_win, text="🛡️ Developed by Volkan YILDIRIM - Proctives\nwww.volkanyildirim.com.tr", font=ctk.CTkFont(size=13, weight="bold"))
         lbl_dev.pack(pady=(0, 10))
+
+    def change_theme(self, new_theme: str):
+        """Kullanıcının seçimine göre arayüz temasını değiştirir."""
+        if new_theme == "Karanlık":
+            ctk.set_appearance_mode("Dark")
+        elif new_theme == "Aydınlık":
+            ctk.set_appearance_mode("Light")
+
     def setup_tab_1(self):
         self.label_title_t1 = ctk.CTkLabel(self.tab_1, text="🛡️ Hedef Altyapı İstihbaratı", font=ctk.CTkFont(size=16, weight="bold"))
         self.label_title_t1.pack(pady=(10, 5))
