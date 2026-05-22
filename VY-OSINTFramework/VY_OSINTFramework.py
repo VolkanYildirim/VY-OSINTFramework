@@ -7,11 +7,12 @@ import os
 from tkinter import filedialog
 from PIL import Image, ExifTags
 import PyPDF2
+from datetime import datetime # Rapor zaman damgası için eklendi
 
 # --- GÜVENLİK VE MİMARİ NOTLARI (VY-OSINTFramework) ---
-# 1. Pasif OSINT: Hedefe doğrudan saldırı yapılmaz.
-# 2. Sıfır Telemetri: Veriler dışarı sızdırılmaz. (Modül 3 %100 Çevrimdışı çalışır)
-# 3. Asenkron Mimari: Ağ istekleri UI'ı dondurmaz.
+# 1. Pasif OSINT: Hedefe doğrudan saldırı/istek yapılmaz, iz bırakılmaz.
+# 2. Sıfır Telemetri: Raporlama işlemi tamamen yerel diskte (Offline) gerçekleşir.
+# 3. Adli Bilişim Standartları: Çıktılara otomatik zaman damgası ve analist imzası eklenir.
 
 ctk.set_appearance_mode("Dark")
 ctk.set_default_color_theme("blue")
@@ -21,7 +22,7 @@ class VY_OSINT_Framework(ctk.CTk):
         super().__init__()
 
         self.title("VY OSINT Framework (Pro Edition)")
-        self.geometry("900x650")
+        self.geometry("900(Pro Edition)""900x700") # Butonlar için boyutu biraz büyüttük
 
         # --- ÜST BAR (HEADER) ---
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -30,14 +31,12 @@ class VY_OSINT_Framework(ctk.CTk):
         self.lbl_app_logo = ctk.CTkLabel(self.header_frame, text="🛡️ VY OSINT Framework", font=ctk.CTkFont(size=20, weight="bold"))
         self.lbl_app_logo.pack(side="left")
 
-        # Hakkında Butonu
         self.btn_about = ctk.CTkButton(self.header_frame, text="Hakkında", width=90, height=30, font=ctk.CTkFont(weight="bold"), command=self.show_about)
-        self.btn_about.pack(side="right", padx=(10, 0)) # Araya 10px boşluk koyduk
+        self.btn_about.pack(side="right", padx=(10, 0))
 
-        # Tema Seçici Açılır Menü (Yeni Eklendi)
         self.theme_menu = ctk.CTkOptionMenu(self.header_frame, values=["Karanlık", "Aydınlık"], command=self.change_theme, width=100, height=30)
         self.theme_menu.pack(side="right")
-        self.theme_menu.set("Karanlık") # Varsayılan değer
+        self.theme_menu.set("Karanlık")
 
         # --- SEKME (TAB) MİMARİSİ ---
         self.tabview = ctk.CTkTabview(self)
@@ -47,30 +46,28 @@ class VY_OSINT_Framework(ctk.CTk):
         self.tab_2 = self.tabview.add("2. Ayak İzi Avcısı")
         self.tab_3 = self.tabview.add("3. Medya Analizi")
 
-
-
         self.setup_tab_1()
         self.setup_tab_2()
         self.setup_tab_3()
 
+    def change_theme(self, new_theme: str):
+        """Kullanıcının seçimine göre arayüz temasını değiştirir."""
+        if new_theme == "Karanlık": ctk.set_appearance_mode("Dark")
+        elif new_theme == "Aydınlık": ctk.set_appearance_mode("Light")
 
-
-    # ==========================================
-    # MODÜL 1: ALTYAPI İSTİHBARATI (DOMAIN/IP)
-    # ==========================================
     def show_about(self):
-
-        """Hakkında (About) penceresini açar ve felsefeyi gösterir."""
+        """Hakkında (About) penceresini açar."""
         about_win = ctk.CTkToplevel(self)
         about_win.title("Hakkında")
         about_win.geometry("520x260")
         about_win.resizable(False, False)
-        about_win.attributes("-topmost", True) # Pencerenin hep üstte kalmasını sağlar
+        about_win.attributes("-topmost", True)
 
         lbl_title = ctk.CTkLabel(about_win, text="VY OSINT Framework", font=ctk.CTkFont(size=18, weight="bold"))
         lbl_title.pack(pady=(25, 5))
 
-        lbl_version = ctk.CTkLabel(about_win, text="Version 1.0 (Pro Edition)", font=ctk.CTkFont(size=13), text_color="gray")
+        # Sözdizimi hatası giderilmiş temiz etiket satırı
+        lbl_version = ctk.CTkLabel(about_win, text="Version 1.3 (Pro Edition)", font=ctk.CTkFont(size=13), text_color="gray")
         lbl_version.pack(pady=(0, 15))
 
         desc = ("Bu yazılım; dijital mahremiyet (Privacy-First) ilkeleri gözetilerek,\n"
@@ -82,13 +79,60 @@ class VY_OSINT_Framework(ctk.CTk):
         lbl_dev = ctk.CTkLabel(about_win, text="🛡️ Developed by Volkan YILDIRIM - Proctives\nwww.volkanyildirim.com.tr", font=ctk.CTkFont(size=13, weight="bold"))
         lbl_dev.pack(pady=(0, 10))
 
-    def change_theme(self, new_theme: str):
-        """Kullanıcının seçimine göre arayüz temasını değiştirir."""
-        if new_theme == "Karanlık":
-            ctk.set_appearance_mode("Dark")
-        elif new_theme == "Aydınlık":
-            ctk.set_appearance_mode("Light")
+    # ==========================================
+    # KORUMALI VE İMZALI RAPORLAMA MOTORU (CORE)
+    # ==========================================
+    def export_report(self, text_widget, module_name):
+        """Log ekranındaki verileri dijital imza ve zaman damgasıyla yerel dosyaya kaydeder."""
+        content = text_widget.get("0.0", "end").strip()
+        
+        # Boş rapor çıktısını engelle
+        if not content or len(content) < 80:
+            return
 
+        filepath = filedialog.asksaveasfilename(
+            title="İstihbarat Raporunu Kaydet",
+            initialfile=f"VY_OSINT_{module_name}_Raporu.txt",
+            filetypes=(("Metin Dosyaları", "*.txt"), ("Tüm Dosyalar", "*.*"))
+        )
+        if not filepath: return # Kullanıcı iptal etti
+
+        current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        
+        # --- ANALİST DIJİTAL İMZASI (HEADER & FOOTER) ---
+        report_header = (
+            "======================================================================\n"
+            "🛡️ VY OSINT FRAMEWORK - SİBER İSTİHBARAT RAPORU\n"
+            f"📅 RAPOR TARİHİ: {current_time}\n"
+            "👤 ANALİST     : Volkan YILDIRIM\n"
+            "🌐 WEB SERVİS  : www.volkanyildirim.com.tr\n"
+            "======================================================================\n\n"
+        )
+        
+        report_footer = (
+            "\n\n======================================================================\n"
+            "ℹ️ BAŞVURU NOTU: Bu rapor %100 Pasif OSINT teknikleri kullanılarak\n"
+            "cihaz üzerinde yerel olarak üretilmiştir. Sıfır Telemetri garantilidir.\n"
+            "Developed by Volkan YILDIRIM - www.volkanyildirim.com.tr\n"
+            "======================================================================"
+        )
+
+        try:
+            with open(filepath, "w", encoding="utf-8") as f:
+                f.write(report_header + content + report_footer)
+        except Exception as e:
+            print(f"Rapor yazma hatası: {str(e)}")
+
+    def clear_log(self, text_widget, default_message):
+        """Sonuç ekranını güvenli bir şekilde sıfırlar."""
+        text_widget.configure(state="normal")
+        text_widget.delete("0.0", "end")
+        text_widget.insert("0.0", default_message + "\n")
+        text_widget.configure(state="disabled")
+
+    # ==========================================
+    # MODÜL 1: ALTYAPI İSTİHBARATI (DOMAIN/IP)
+    # ==========================================
     def setup_tab_1(self):
         self.label_title_t1 = ctk.CTkLabel(self.tab_1, text="🛡️ Hedef Altyapı İstihbaratı", font=ctk.CTkFont(size=16, weight="bold"))
         self.label_title_t1.pack(pady=(10, 5))
@@ -106,6 +150,16 @@ class VY_OSINT_Framework(ctk.CTk):
         self.txt_results_t1.pack(pady=10, padx=10, fill="both", expand=True)
         self.log_t1("[*] Sistem Hazır. %100 Pasif tarama için hedef giriniz...")
 
+        # --- EYLEM BUTONLARI PANELİ ---
+        self.frame_actions_t1 = ctk.CTkFrame(self.tab_1, fg_color="transparent")
+        self.frame_actions_t1.pack(fill="x", padx=10, pady=(0, 5))
+
+        self.btn_clear_t1 = ctk.CTkButton(self.frame_actions_t1, text="Ekranı Temizle", width=120, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t1, "[*] Sistem Hazır. %100 Pasif tarama için hedef giriniz..."))
+        self.btn_clear_t1.pack(side="left")
+
+        self.btn_export_t1 = ctk.CTkButton(self.frame_actions_t1, text="Raporu Güvenli Dışa Aktar", font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t1, "Altyapı_OSINT"))
+        self.btn_export_t1.pack(side="right")
+
     def log_t1(self, message):
         self.txt_results_t1.configure(state="normal")
         self.txt_results_t1.insert("end", message + "\n")
@@ -116,7 +170,6 @@ class VY_OSINT_Framework(ctk.CTk):
         target = self.entry_target_t1.get().strip()
         if not target: return
         if "://" in target: target = target.split("://")[1].split("/")[0]
-
         self.btn_scan_t1.configure(state="disabled", text="TARANIYOR...")
         self.log_t1(f"\n[{'-'*40}]\n[+] YENİ TARAMA BAŞLATILDI: {target}\n[{'-'*40}]")
         threading.Thread(target=self.run_osint, args=(target,), daemon=True).start()
@@ -165,6 +218,16 @@ class VY_OSINT_Framework(ctk.CTk):
         self.txt_results_t2.pack(pady=10, padx=10, fill="both", expand=True)
         self.log_t2("[*] Ayak İzi Modülü Hazır. Genişletilmiş platformlar kontrol edilecektir...")
 
+        # --- EYLEM BUTONLARI PANELİ ---
+        self.frame_actions_t2 = ctk.CTkFrame(self.tab_2, fg_color="transparent")
+        self.frame_actions_t2.pack(fill="x", padx=10, pady=(0, 5))
+
+        self.btn_clear_t2 = ctk.CTkButton(self.frame_actions_t2, text="Ekranı Temizle", width=120, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t2, "[*] Ayak İzi Modülü Hazır. Genişletilmiş platformlar kontrol edilecektir..."))
+        self.btn_clear_t2.pack(side="left")
+
+        self.btn_export_t2 = ctk.CTkButton(self.frame_actions_t2, text="Raporu Güvenli Dışa Aktar", font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t2, "Ayak_Izi_OSINT"))
+        self.btn_export_t2.pack(side="right")
+
     def log_t2(self, message):
         self.txt_results_t2.configure(state="normal")
         self.txt_results_t2.insert("end", message + "\n")
@@ -175,7 +238,7 @@ class VY_OSINT_Framework(ctk.CTk):
         username = self.entry_target_t2.get().strip()
         if not username or " " in username: return
         self.btn_scan_t2.configure(state="disabled", text="ARANIYOR...")
-        self.log_t2(f"\n[{'-'*40}]\n[+] HEDEF: '{username}' İÇİN TARAMA BAŞLADI\n[{'-'*40}]")
+        self.log_t2(f"\n[{'-'*40}]\n[+] HEDEF: '{username}' İÇİR TARAMA BAŞLADI\n[{'-'*40}]")
         threading.Thread(target=self.run_username_enumeration, args=(username,), daemon=True).start()
 
     def run_username_enumeration(self, username):
@@ -215,6 +278,16 @@ class VY_OSINT_Framework(ctk.CTk):
         self.txt_results_t3.pack(pady=10, padx=10, fill="both", expand=True)
         self.log_t3("[*] Modül 3 Hazır. Veriler sunucuya gönderilmez, cihazınızda (%100 Çevrimdışı) analiz edilir.")
 
+        # --- EYLEM BUTONLARI PANELİ ---
+        self.frame_actions_t3 = ctk.CTkFrame(self.tab_3, fg_color="transparent")
+        self.frame_actions_t3.pack(fill="x", padx=10, pady=(0, 5))
+
+        self.btn_clear_t3 = ctk.CTkButton(self.frame_actions_t3, text="Ekranı Temizle", width=120, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t3, "[*] Modül 3 Hazır. Veriler sunucuya gönderilmez, cihazınızda (%100 Çevrimdışı) analiz edilir."))
+        self.btn_clear_t3.pack(side="left")
+
+        self.btn_export_t3 = ctk.CTkButton(self.frame_actions_t3, text="Raporu Güvenli Dışa Aktar", font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t3, "Media_Forensics_OSINT"))
+        self.btn_export_t3.pack(side="right")
+
     def log_t3(self, message):
         self.txt_results_t3.configure(state="normal")
         self.txt_results_t3.insert("end", message + "\n")
@@ -222,80 +295,53 @@ class VY_OSINT_Framework(ctk.CTk):
         self.txt_results_t3.configure(state="disabled")
 
     def analyze_media(self):
-        """Kullanıcıdan dosya alır ve uzantısına göre analiz motoruna yönlendirir."""
         filepath = filedialog.askopenfilename(
             title="Analiz Edilecek Dosyayı Seçin",
             filetypes=(("Tüm Desteklenen Dosyalar", "*.jpg *.jpeg *.png *.pdf"), ("Resimler", "*.jpg *.jpeg *.png"), ("PDF Belgeleri", "*.pdf"))
         )
-        
-        if not filepath: return # Kullanıcı iptal etti
-        
+        if not filepath: return
         filename = os.path.basename(filepath)
         self.log_t3(f"\n[{'-'*50}]\n[+] HEDEF DOSYA: {filename}\n[{'-'*50}]")
-        
         ext = filename.lower().split('.')[-1]
-        
-        if ext in ['jpg', 'jpeg', 'png']:
-            self.extract_image_exif(filepath)
-        elif ext == 'pdf':
-            self.extract_pdf_metadata(filepath)
-        else:
-            self.log_t3("❌ Desteklenmeyen dosya formatı.")
+        if ext in ['jpg', 'jpeg', 'png']: self.extract_image_exif(filepath)
+        elif ext == 'pdf': self.extract_pdf_metadata(filepath)
 
     def extract_image_exif(self, filepath):
-        """Resimlerdeki gizli EXIF meta verilerini çıkartır."""
-        self.log_t3("[*] İşlem: Görüntü Analizi Başladı...")
+        self.log_t3("[*] İşlem: Görüntü (Resim) Analizi Başladı...")
         try:
             image = Image.open(filepath)
             exif_data = image._getexif()
-            
             if not exif_data:
-                self.log_t3("[-] Bu fotoğrafta okunabilir bir EXIF meta verisi bulunamadı. (Sosyal medyadan indirilmiş veya temizlenmiş olabilir).")
+                self.log_t3("[-] Bu fotoğrafta okunabilir bir EXIF meta verisi bulunamadı.")
                 return
-
             self.log_t3("[+] EXIF Verileri Bulundu:\n")
             found_gps = False
-            
             for tag_id, value in exif_data.items():
                 tag_name = ExifTags.TAGS.get(tag_id, tag_id)
-                
-                # Sadece okunabilir ve işe yarar verileri filtreliyoruz
                 if isinstance(value, bytes): continue 
-                
                 if tag_name == "GPSInfo":
                     found_gps = True
                     self.log_t3(f"    🌍 {tag_name}: [GİZLİ KOORDİNATLAR TESPİT EDİLDİ]")
                 else:
-                    # Uzun dataları kısalt
                     val_str = str(value)[:100] + "..." if len(str(value)) > 100 else str(value)
                     self.log_t3(f"    ✔️ {tag_name}: {val_str}")
-                    
-            if not found_gps:
-                self.log_t3("\n[-] GPS Koordinat verisi bulunamadı.")
-                
-        except Exception as e:
-            self.log_t3(f"❌ Resim analiz hatası: {str(e)}")
+            if not found_gps: self.log_t3("\n[-] GPS Koordinat verisi bulunamadı.")
+        except Exception as e: self.log_t3(f"❌ Resim analiz hatası: {str(e)}")
 
     def extract_pdf_metadata(self, filepath):
-        """PDF belgelerindeki gizli meta verileri çıkartır."""
         self.log_t3("[*] İşlem: PDF Belge Analizi Başladı...")
         try:
             with open(filepath, 'rb') as f:
                 reader = PyPDF2.PdfReader(f)
                 info = reader.metadata
-                
                 if not info:
                     self.log_t3("[-] Bu PDF dosyasında meta veri bulunamadı.")
                     return
-
                 self.log_t3("[+] PDF Meta Verileri Bulundu:\n")
                 for key, value in info.items():
-                    # /Author gibi key'lerin başındaki slash'i temizle
                     clean_key = key.replace("/", "") 
                     self.log_t3(f"    📄 {clean_key}: {value}")
-                    
-        except Exception as e:
-            self.log_t3(f"❌ PDF analiz hatası: {str(e)}")
+        except Exception as e: self.log_t3(f"❌ PDF analiz hatası: {str(e)}")
 
 if __name__ == "__main__":
     app = VY_OSINT_Framework()
