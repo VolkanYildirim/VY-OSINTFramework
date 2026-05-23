@@ -7,7 +7,7 @@ import os
 from tkinter import filedialog
 from PIL import Image, ExifTags
 import PyPDF2
-from datetime import datetime # Rapor zaman damgası için eklendi
+from datetime import datetime
 
 # --- GÜVENLİK VE MİMARİ NOTLARI (VY-OSINTFramework) ---
 # 1. Pasif OSINT: Hedefe doğrudan saldırı/istek yapılmaz, iz bırakılmaz.
@@ -22,25 +22,27 @@ class VY_OSINT_Framework(ctk.CTk):
         super().__init__()
 
         self.title("VY OSINT Framework (Pro Edition)")
-        self.geometry("900(Pro Edition)""900x700") # Butonlar için boyutu biraz büyüttük
+        self.geometry("1000x750") # Hata düzeltildi, daha geniş ve ferah pencere
 
         # --- ÜST BAR (HEADER) ---
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.pack(fill="x", padx=15, pady=(15, 0))
+        self.header_frame.pack(fill="x", padx=20, pady=(20, 10))
 
-        self.lbl_app_logo = ctk.CTkLabel(self.header_frame, text="🛡️ VY OSINT Framework", font=ctk.CTkFont(size=20, weight="bold"))
+        self.lbl_app_logo = ctk.CTkLabel(self.header_frame, text="🛡️ VY OSINT Framework", font=ctk.CTkFont(size=22, weight="bold"))
         self.lbl_app_logo.pack(side="left")
 
+        # Hakkında Butonu
         self.btn_about = ctk.CTkButton(self.header_frame, text="Hakkında", width=90, height=30, font=ctk.CTkFont(weight="bold"), command=self.show_about)
         self.btn_about.pack(side="right", padx=(10, 0))
 
-        self.theme_menu = ctk.CTkOptionMenu(self.header_frame, values=["Karanlık", "Aydınlık"], command=self.change_theme, width=100, height=30)
-        self.theme_menu.pack(side="right")
-        self.theme_menu.set("Karanlık")
+        # Dinamik Tema Switch'i (Yeni Eklendi)
+        self.theme_var = ctk.StringVar(value="Dark")
+        self.theme_switch = ctk.CTkSwitch(self.header_frame, text="Karanlık Mod", command=self.toggle_theme, variable=self.theme_var, onvalue="Dark", offvalue="Light")
+        self.theme_switch.pack(side="right", padx=(10, 15))
 
         # --- SEKME (TAB) MİMARİSİ ---
         self.tabview = ctk.CTkTabview(self)
-        self.tabview.pack(fill="both", expand=True, padx=15, pady=(5, 15))
+        self.tabview.pack(fill="both", expand=True, padx=20, pady=(0, 20))
 
         self.tab_1 = self.tabview.add("1. Altyapı OSINT")
         self.tab_2 = self.tabview.add("2. Ayak İzi Avcısı")
@@ -50,13 +52,16 @@ class VY_OSINT_Framework(ctk.CTk):
         self.setup_tab_2()
         self.setup_tab_3()
 
-    def change_theme(self, new_theme: str):
-        """Kullanıcının seçimine göre arayüz temasını değiştirir."""
-        if new_theme == "Karanlık": ctk.set_appearance_mode("Dark")
-        elif new_theme == "Aydınlık": ctk.set_appearance_mode("Light")
+    def toggle_theme(self):
+        """Switch durumuna göre temayı ve yazıyı dinamik olarak günceller."""
+        current_theme = self.theme_var.get()
+        ctk.set_appearance_mode(current_theme)
+        if current_theme == "Dark":
+            self.theme_switch.configure(text="Karanlık Mod")
+        else:
+            self.theme_switch.configure(text="Aydınlık Mod")
 
     def show_about(self):
-        """Hakkında (About) penceresini açar."""
         about_win = ctk.CTkToplevel(self)
         about_win.title("Hakkında")
         about_win.geometry("520x260")
@@ -66,7 +71,6 @@ class VY_OSINT_Framework(ctk.CTk):
         lbl_title = ctk.CTkLabel(about_win, text="VY OSINT Framework", font=ctk.CTkFont(size=18, weight="bold"))
         lbl_title.pack(pady=(25, 5))
 
-        # Sözdizimi hatası giderilmiş temiz etiket satırı
         lbl_version = ctk.CTkLabel(about_win, text="Version 1.3 (Pro Edition)", font=ctk.CTkFont(size=13), text_color="gray")
         lbl_version.pack(pady=(0, 15))
 
@@ -83,23 +87,17 @@ class VY_OSINT_Framework(ctk.CTk):
     # KORUMALI VE İMZALI RAPORLAMA MOTORU (CORE)
     # ==========================================
     def export_report(self, text_widget, module_name):
-        """Log ekranındaki verileri dijital imza ve zaman damgasıyla yerel dosyaya kaydeder."""
         content = text_widget.get("0.0", "end").strip()
-        
-        # Boş rapor çıktısını engelle
-        if not content or len(content) < 80:
-            return
+        if not content or len(content) < 80: return
 
         filepath = filedialog.asksaveasfilename(
             title="İstihbarat Raporunu Kaydet",
             initialfile=f"VY_OSINT_{module_name}_Raporu.txt",
             filetypes=(("Metin Dosyaları", "*.txt"), ("Tüm Dosyalar", "*.*"))
         )
-        if not filepath: return # Kullanıcı iptal etti
+        if not filepath: return
 
         current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        
-        # --- ANALİST DIJİTAL İMZASI (HEADER & FOOTER) ---
         report_header = (
             "======================================================================\n"
             "🛡️ VY OSINT FRAMEWORK - SİBER İSTİHBARAT RAPORU\n"
@@ -108,7 +106,6 @@ class VY_OSINT_Framework(ctk.CTk):
             "🌐 WEB SERVİS  : www.volkanyildirim.com.tr\n"
             "======================================================================\n\n"
         )
-        
         report_footer = (
             "\n\n======================================================================\n"
             "ℹ️ BAŞVURU NOTU: Bu rapor %100 Pasif OSINT teknikleri kullanılarak\n"
@@ -116,15 +113,12 @@ class VY_OSINT_Framework(ctk.CTk):
             "Developed by Volkan YILDIRIM - www.volkanyildirim.com.tr\n"
             "======================================================================"
         )
-
         try:
             with open(filepath, "w", encoding="utf-8") as f:
                 f.write(report_header + content + report_footer)
-        except Exception as e:
-            print(f"Rapor yazma hatası: {str(e)}")
+        except Exception as e: print(f"Rapor yazma hatası: {str(e)}")
 
     def clear_log(self, text_widget, default_message):
-        """Sonuç ekranını güvenli bir şekilde sıfırlar."""
         text_widget.configure(state="normal")
         text_widget.delete("0.0", "end")
         text_widget.insert("0.0", default_message + "\n")
@@ -135,29 +129,28 @@ class VY_OSINT_Framework(ctk.CTk):
     # ==========================================
     def setup_tab_1(self):
         self.label_title_t1 = ctk.CTkLabel(self.tab_1, text="🛡️ Hedef Altyapı İstihbaratı", font=ctk.CTkFont(size=16, weight="bold"))
-        self.label_title_t1.pack(pady=(10, 5))
+        self.label_title_t1.pack(pady=(15, 10))
 
         self.frame_input_t1 = ctk.CTkFrame(self.tab_1, fg_color="transparent")
-        self.frame_input_t1.pack(pady=5, padx=10, fill="x")
+        self.frame_input_t1.pack(pady=5, padx=20, fill="x")
 
-        self.entry_target_t1 = ctk.CTkEntry(self.frame_input_t1, placeholder_text="Hedef Domain veya IP girin...", height=35)
-        self.entry_target_t1.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.entry_target_t1 = ctk.CTkEntry(self.frame_input_t1, placeholder_text="Hedef Domain veya IP girin...", height=40)
+        self.entry_target_t1.pack(side="left", fill="x", expand=True, padx=(0, 15))
 
-        self.btn_scan_t1 = ctk.CTkButton(self.frame_input_t1, text="İSTİHBARAT TOPLA", height=35, font=ctk.CTkFont(weight="bold"), command=self.start_osint_thread)
+        self.btn_scan_t1 = ctk.CTkButton(self.frame_input_t1, text="İSTİHBARAT TOPLA", height=40, font=ctk.CTkFont(weight="bold"), command=self.start_osint_thread)
         self.btn_scan_t1.pack(side="right")
 
         self.txt_results_t1 = ctk.CTkTextbox(self.tab_1, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
-        self.txt_results_t1.pack(pady=10, padx=10, fill="both", expand=True)
+        self.txt_results_t1.pack(pady=15, padx=20, fill="both", expand=True)
         self.log_t1("[*] Sistem Hazır. %100 Pasif tarama için hedef giriniz...")
 
-        # --- EYLEM BUTONLARI PANELİ ---
         self.frame_actions_t1 = ctk.CTkFrame(self.tab_1, fg_color="transparent")
-        self.frame_actions_t1.pack(fill="x", padx=10, pady=(0, 5))
+        self.frame_actions_t1.pack(fill="x", padx=20, pady=(0, 15))
 
-        self.btn_clear_t1 = ctk.CTkButton(self.frame_actions_t1, text="Ekranı Temizle", width=120, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t1, "[*] Sistem Hazır. %100 Pasif tarama için hedef giriniz..."))
+        self.btn_clear_t1 = ctk.CTkButton(self.frame_actions_t1, text="Ekranı Temizle", width=120, height=35, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t1, "[*] Sistem Hazır. %100 Pasif tarama için hedef giriniz..."))
         self.btn_clear_t1.pack(side="left")
 
-        self.btn_export_t1 = ctk.CTkButton(self.frame_actions_t1, text="Raporu Güvenli Dışa Aktar", font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t1, "Altyapı_OSINT"))
+        self.btn_export_t1 = ctk.CTkButton(self.frame_actions_t1, text="Raporu Güvenli Dışa Aktar", height=35, font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t1, "Altyapi_OSINT"))
         self.btn_export_t1.pack(side="right")
 
     def log_t1(self, message):
@@ -179,53 +172,48 @@ class VY_OSINT_Framework(ctk.CTk):
             self.log_t1("[*] Adım 1: IP Adresi Çözümleniyor...")
             target_ip = socket.gethostbyname(target)
             self.log_t1(f"    ✅ IP Adresi: {target_ip}")
-
             self.log_t1("\n[*] Adım 2: ISP Analizi (Pasif)...")
             headers = {"User-Agent": "Mozilla/5.0"}
             geo_response = requests.get(f"https://ipinfo.io/{target_ip}/json", headers=headers, timeout=5)
             if geo_response.status_code == 200:
                 geo_data = geo_response.json()
                 self.log_t1(f"    ✅ Ülke: {geo_data.get('country', 'Bilinmiyor')} | ISP: {geo_data.get('org', 'Bilinmiyor')}")
-
             self.log_t1("\n[*] Adım 3: Header Analizi (HackerTarget API)...")
             ht_response = requests.get(f"https://api.hackertarget.com/httpheaders/?q={target}", headers=headers, timeout=10)
             if ht_response.status_code == 200 and "error" not in ht_response.text.lower():
                 for line in ht_response.text.split('\n')[:5]:
                     if line.strip() and not line.startswith("http"): self.log_t1(f"       - {line.strip()}")
             self.log_t1("\n[+] İSTİHBARAT TAMAMLANDI.")
-        except Exception as e:
-            self.log_t1(f"\n[❌] HATA: {str(e)}")
-        finally:
-            self.after(100, lambda: self.btn_scan_t1.configure(state="normal", text="İSTİHBARAT TOPLA"))
+        except Exception as e: self.log_t1(f"\n[❌] HATA: {str(e)}")
+        finally: self.after(100, lambda: self.btn_scan_t1.configure(state="normal", text="İSTİHBARAT TOPLA"))
 
     # ==========================================
     # MODÜL 2: DİJİTAL AYAK İZİ (USERNAME ENUMERATION)
     # ==========================================
     def setup_tab_2(self):
         self.label_title_t2 = ctk.CTkLabel(self.tab_2, text="👤 Dijital Ayak İzi Avcısı", font=ctk.CTkFont(size=16, weight="bold"))
-        self.label_title_t2.pack(pady=(10, 5))
+        self.label_title_t2.pack(pady=(15, 10))
 
         self.frame_input_t2 = ctk.CTkFrame(self.tab_2, fg_color="transparent")
-        self.frame_input_t2.pack(pady=5, padx=10, fill="x")
+        self.frame_input_t2.pack(pady=5, padx=20, fill="x")
 
-        self.entry_target_t2 = ctk.CTkEntry(self.frame_input_t2, placeholder_text="Kullanıcı adı girin...", height=35)
-        self.entry_target_t2.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        self.entry_target_t2 = ctk.CTkEntry(self.frame_input_t2, placeholder_text="Kullanıcı adı girin...", height=40)
+        self.entry_target_t2.pack(side="left", fill="x", expand=True, padx=(0, 15))
 
-        self.btn_scan_t2 = ctk.CTkButton(self.frame_input_t2, text="KULLANICIYI ARA", height=35, font=ctk.CTkFont(weight="bold"), command=self.start_enum_thread)
+        self.btn_scan_t2 = ctk.CTkButton(self.frame_input_t2, text="KULLANICIYI ARA", height=40, font=ctk.CTkFont(weight="bold"), command=self.start_enum_thread)
         self.btn_scan_t2.pack(side="right")
 
         self.txt_results_t2 = ctk.CTkTextbox(self.tab_2, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
-        self.txt_results_t2.pack(pady=10, padx=10, fill="both", expand=True)
+        self.txt_results_t2.pack(pady=15, padx=20, fill="both", expand=True)
         self.log_t2("[*] Ayak İzi Modülü Hazır. Genişletilmiş platformlar kontrol edilecektir...")
 
-        # --- EYLEM BUTONLARI PANELİ ---
         self.frame_actions_t2 = ctk.CTkFrame(self.tab_2, fg_color="transparent")
-        self.frame_actions_t2.pack(fill="x", padx=10, pady=(0, 5))
+        self.frame_actions_t2.pack(fill="x", padx=20, pady=(0, 15))
 
-        self.btn_clear_t2 = ctk.CTkButton(self.frame_actions_t2, text="Ekranı Temizle", width=120, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t2, "[*] Ayak İzi Modülü Hazır. Genişletilmiş platformlar kontrol edilecektir..."))
+        self.btn_clear_t2 = ctk.CTkButton(self.frame_actions_t2, text="Ekranı Temizle", width=120, height=35, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t2, "[*] Ayak İzi Modülü Hazır. Genişletilmiş platformlar kontrol edilecektir..."))
         self.btn_clear_t2.pack(side="left")
 
-        self.btn_export_t2 = ctk.CTkButton(self.frame_actions_t2, text="Raporu Güvenli Dışa Aktar", font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t2, "Ayak_Izi_OSINT"))
+        self.btn_export_t2 = ctk.CTkButton(self.frame_actions_t2, text="Raporu Güvenli Dışa Aktar", height=35, font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t2, "Ayak_Izi_OSINT"))
         self.btn_export_t2.pack(side="right")
 
     def log_t2(self, message):
@@ -238,7 +226,7 @@ class VY_OSINT_Framework(ctk.CTk):
         username = self.entry_target_t2.get().strip()
         if not username or " " in username: return
         self.btn_scan_t2.configure(state="disabled", text="ARANIYOR...")
-        self.log_t2(f"\n[{'-'*40}]\n[+] HEDEF: '{username}' İÇİR TARAMA BAŞLADI\n[{'-'*40}]")
+        self.log_t2(f"\n[{'-'*40}]\n[+] HEDEF: '{username}' İÇİN TARAMA BAŞLADI\n[{'-'*40}]")
         threading.Thread(target=self.run_username_enumeration, args=(username,), daemon=True).start()
 
     def run_username_enumeration(self, username):
@@ -269,23 +257,22 @@ class VY_OSINT_Framework(ctk.CTk):
     # ==========================================
     def setup_tab_3(self):
         self.label_title_t3 = ctk.CTkLabel(self.tab_3, text="📷 Çevrimdışı Medya Adli Bilişimi (EXIF/Metadata)", font=ctk.CTkFont(size=16, weight="bold"))
-        self.label_title_t3.pack(pady=(10, 5))
+        self.label_title_t3.pack(pady=(15, 10))
 
-        self.btn_select_file = ctk.CTkButton(self.tab_3, text="DOSYA SEÇ (Resim veya PDF)", height=40, font=ctk.CTkFont(weight="bold"), fg_color="#8B0000", hover_color="#5C0000", command=self.analyze_media)
+        self.btn_select_file = ctk.CTkButton(self.tab_3, text="DOSYA SEÇ (Resim veya PDF)", height=45, font=ctk.CTkFont(weight="bold"), fg_color="#8B0000", hover_color="#5C0000", command=self.analyze_media)
         self.btn_select_file.pack(pady=10)
 
         self.txt_results_t3 = ctk.CTkTextbox(self.tab_3, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
-        self.txt_results_t3.pack(pady=10, padx=10, fill="both", expand=True)
+        self.txt_results_t3.pack(pady=15, padx=20, fill="both", expand=True)
         self.log_t3("[*] Modül 3 Hazır. Veriler sunucuya gönderilmez, cihazınızda (%100 Çevrimdışı) analiz edilir.")
 
-        # --- EYLEM BUTONLARI PANELİ ---
         self.frame_actions_t3 = ctk.CTkFrame(self.tab_3, fg_color="transparent")
-        self.frame_actions_t3.pack(fill="x", padx=10, pady=(0, 5))
+        self.frame_actions_t3.pack(fill="x", padx=20, pady=(0, 15))
 
-        self.btn_clear_t3 = ctk.CTkButton(self.frame_actions_t3, text="Ekranı Temizle", width=120, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t3, "[*] Modül 3 Hazır. Veriler sunucuya gönderilmez, cihazınızda (%100 Çevrimdışı) analiz edilir."))
+        self.btn_clear_t3 = ctk.CTkButton(self.frame_actions_t3, text="Ekranı Temizle", width=120, height=35, fg_color="#4F4F4F", hover_color="#363636", command=lambda: self.clear_log(self.txt_results_t3, "[*] Modül 3 Hazır. Veriler sunucuya gönderilmez, cihazınızda (%100 Çevrimdışı) analiz edilir."))
         self.btn_clear_t3.pack(side="left")
 
-        self.btn_export_t3 = ctk.CTkButton(self.frame_actions_t3, text="Raporu Güvenli Dışa Aktar", font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t3, "Media_Forensics_OSINT"))
+        self.btn_export_t3 = ctk.CTkButton(self.frame_actions_t3, text="Raporu Güvenli Dışa Aktar", height=35, font=ctk.CTkFont(weight="bold"), fg_color="#2E8B57", hover_color="#1E5637", command=lambda: self.export_report(self.txt_results_t3, "Media_Forensics"))
         self.btn_export_t3.pack(side="right")
 
     def log_t3(self, message):
