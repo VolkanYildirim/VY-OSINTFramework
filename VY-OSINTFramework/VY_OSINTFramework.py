@@ -73,7 +73,7 @@ class VY_OSINT_Framework(ctk.CTk):
                 "tamamen açık kaynaklı altyapılar kullanılarak geliştirilmiştir.\n"
                 "Hiçbir kullanıcı verisi veya telemetri toplamaz ve dışarıya aktarmaz.")
         ctk.CTkLabel(about_win, text=desc, font=ctk.CTkFont(size=13)).pack(pady=(0, 20))
-        ctk.CTkLabel(about_win, text="🛡️ Developed by Volkan YILDIRIM - Proctives\nwww.volkanyildirim.com.tr", font=ctk.CTkFont(size=13, weight="bold")).pack(pady=(0, 10))
+        ctk.CTkLabel(about_win, text="🛡️ Developed by Volkan YILDIRIM \nwww.volkanyildirim.com.tr", font=ctk.CTkFont(size=13, weight="bold")).pack(pady=(0, 10))
 
     def show_history(self):
         """Sürüm geçmişini gösteren profesyonel pencere."""
