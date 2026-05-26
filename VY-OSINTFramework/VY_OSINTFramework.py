@@ -237,20 +237,59 @@ class VY_OSINT_Framework(ctk.CTk):
         threading.Thread(target=self.run_username_enumeration, args=(username,), daemon=True).start()
 
     def run_username_enumeration(self, username):
-        platforms = {"GitHub": f"https://github.com/{username}", "Reddit": f"https://www.reddit.com/user/{username}",
-                     "Patreon": f"https://www.patreon.com/{username}", "Telegram": f"https://t.me/{username}",
-                     "Linktree": f"https://linktr.ee/{username}", "Blogger": f"https://{username}.blogspot.com/"}
-        headers = {"User-Agent": "Mozilla/5.0"}
+        # --- KESİN SONUÇ VEREN 22 ADET ALTIN HEDEF LİSTESİ ---
+        platforms = {
+            "GitHub": f"https://github.com/{username}",
+            "GitLab": f"https://gitlab.com/{username}",
+            "BitBucket": f"https://bitbucket.org/{username}/",
+            "Pastebin": f"https://pastebin.com/u/{username}",
+            "Dev.to": f"https://dev.to/{username}",
+            "HackTheBox": f"https://app.hackthebox.com/users/{username}",
+            "TryHackMe": f"https://tryhackme.com/p/{username}",
+            "Keybase": f"https://keybase.io/{username}",
+            "Reddit": f"https://www.reddit.com/user/{username}",
+            "Telegram": f"https://t.me/{username}",
+            "Flickr": f"https://www.flickr.com/people/{username}/",
+            "Behance": f"https://www.behance.net/{username}",
+            "Chess.com": f"https://www.chess.com/member/{username}",
+            "Patreon": f"https://www.patreon.com/{username}",
+            "BuyMeACoffee": f"https://www.buymeacoffee.com/{username}",
+            "Gravatar": f"https://en.gravatar.com/{username}",
+            "Linktree": f"https://linktr.ee/{username}",
+            "AllMyLinks": f"https://allmylinks.com/{username}",
+            "About.me": f"https://about.me/{username}",
+            "Blogger": f"https://{username}.blogspot.com/",
+            "LiveJournal": f"https://{username}.livejournal.com/",
+            "HubPages": f"https://hubpages.com/@{username}"
+        }
+        
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        }
         found_count = 0
+        
         for site, url in platforms.items():
             self.log_t2(f"[*] {site} platformu kontrol ediliyor...")
             try:
+                # WAF ve Anti-Bot korumalarını atlatmak için milisaniyelik stratejik gecikme
                 time.sleep(0.5)
                 res = requests.get(url, headers=headers, timeout=8, allow_redirects=True)
-                if res.status_code == 200: self.log_t2(f"    ✅ BULUNDU: {url}"); found_count += 1
-                elif res.status_code == 404: self.log_t2("    [-] Bulunamadı.")
-            except Exception: self.log_t2("    [-] Bulunamadı. (Alan adı yok)")
-        self.log_t2(f"\n[+] TARAMA BİTTİ. {found_count}/{len(platforms)} iz tespit edildi.")
+                
+                if res.status_code == 200: 
+                    self.log_t2(f"    ✅ BULUNDU: {url}")
+                    found_count += 1
+                elif res.status_code == 404: 
+                    self.log_t2("    [-] Bulunamadı.")
+                elif res.status_code == 403:
+                    self.log_t2("    ⚠️ Yanıt kodu: 403 (WAF Engeli)")
+                else:
+                    self.log_t2(f"    ⚠️ Yanıt kodu: {res.status_code}")
+                    
+            except Exception: 
+                # Blogger vb. sitelerde kullanıcı yoksa DNS hatası (ConnectionError) döner
+                self.log_t2("    [-] Bulunamadı. (Alan adı kaydı yok)")
+                
+        self.log_t2(f"\n[+] TARAMA BİTTİ. Toplam {found_count}/{len(platforms)} platformda dijital ayak izi tespit edildi.")
         self.after(100, lambda: self.btn_scan_t2.configure(state="normal", text="KULLANICIYI ARA"))
 
     # ==========================================
