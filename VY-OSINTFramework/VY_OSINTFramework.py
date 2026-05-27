@@ -85,7 +85,7 @@ class VY_OSINT_Framework(ctk.CTk):
         # Başlık Paneli (VY Downloader tarzı)
         title_frame = ctk.CTkFrame(history_win, fg_color="#1f538d", height=50, corner_radius=0)
         title_frame.pack(fill="x")
-        ctk.CTkLabel(title_frame, text="VY OSINT Framework - Sürüm Geçmişi", text_color="white", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
+        ctk.CTkLabel(title_frame, text="Sürüm Geçmişi", text_color="white", font=ctk.CTkFont(size=16, weight="bold")).pack(pady=10)
 
         # Kaydırılabilir Metin Alanı
         txt_history = ctk.CTkTextbox(history_win, font=ctk.CTkFont(family="Consolas", size=13), wrap="word")
