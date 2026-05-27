@@ -136,8 +136,8 @@ class VY_OSINT_Framework(ctk.CTk):
         header = (f"======================================================================\n"
                   f"🛡️ VY OSINT FRAMEWORK - SİBER İSTİHBARAT RAPORU\n"
                   f"📅 RAPOR TARİHİ: {current_time}\n"
-                  f"👤 ANALİST     : Volkan YILDIRIM\n"
-                  f"🌐 WEB SERVİS  : www.volkanyildirim.com.tr\n"
+                  f"👤 YAPIMCI     : Volkan YILDIRIM\n"
+                  f"🌐 SİTEM       : www.volkanyildirim.com.tr\n"
                   f"======================================================================\n\n")
         footer = (f"\n\n======================================================================\n"
                   f"ℹ️ BAŞVURU NOTU: Bu rapor %100 Pasif OSINT teknikleri kullanılarak\n"
