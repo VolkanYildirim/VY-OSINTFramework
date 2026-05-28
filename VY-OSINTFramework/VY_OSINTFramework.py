@@ -137,12 +137,11 @@ class VY_OSINT_Framework(ctk.CTk):
                   f"🛡️ VY OSINT FRAMEWORK - SİBER İSTİHBARAT RAPORU\n"
                   f"📅 RAPOR TARİHİ: {current_time}\n"
                   f"👤 YAPIMCI     : Volkan YILDIRIM\n"
-                  f"🌐 SİTEM       : www.volkanyildirim.com.tr\n"
+                  f"🌐 SİTE        : www.volkanyildirim.com.tr\n"
                   f"======================================================================\n\n")
         footer = (f"\n\n======================================================================\n"
                   f"ℹ️ BAŞVURU NOTU: Bu rapor %100 Pasif OSINT teknikleri kullanılarak\n"
-                  f"cihaz üzerinde yerel olarak üretilmiştir. Sıfır Telemetri garantilidir.\n"
-                  f"Developed by Volkan YILDIRIM - www.volkanyildirim.com.tr\n"
+                  f"cihaz üzerinde sıfır telemetri ile yerel olarak üretilmiştir.\n"
                   f"======================================================================")
         try:
             with open(filepath, "w", encoding="utf-8") as f: f.write(header + content + footer)
